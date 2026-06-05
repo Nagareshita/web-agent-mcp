@@ -1,0 +1,60 @@
+# SearXNG configuration for web-agent-mcp
+# JSON search API enabled for MCP server integration
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "local-searxng"
+
+server:
+  secret_key: "changeme-use-random-secret-in-production"
+  bind_address: "0.0.0.0"
+  port: 8080
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "auto"
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+  formats:
+    - html
+    - json
+
+engines:
+  - name: google
+    engine: google
+    shortcut: g
+    use_mobile_ui: false
+  - name: bing
+    engine: bing
+    shortcut: b
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: d
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: w
+    base_url: "https://ja.wikipedia.org/"
+    language: ja
+  - name: github
+    engine: github
+    shortcut: gh
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    categories: science
+  - name: google scholar
+    engine: google_scholar
+    shortcut: gscholar
+
+outgoing:
+  request_timeout: 15.0
+  max_request_timeout: 30.0
+  useragent_suffix: ""
+  pool_connections: 100
+  pool_maxsize: 20

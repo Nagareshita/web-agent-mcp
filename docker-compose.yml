@@ -1,0 +1,59 @@
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: web-agent-searxng
+    restart: unless-stopped
+    expose:
+      - "8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - BASE_URL=http://searxng:8080/
+      - INSTANCE_NAME=local-searxng
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=localhost,127.0.0.1,::1,searxng,web-agent-mcp
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=localhost,127.0.0.1,::1,searxng,web-agent-mcp
+
+  web-agent-mcp:
+    build:
+      context: .
+      dockerfile: docker/web-agent-mcp/Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
+    container_name: web-agent-mcp
+    restart: unless-stopped
+    depends_on:
+      - searxng
+    ports:
+      - "8103:8103"
+    volumes:
+      - ./data/cache:/app/cache
+      - ./data/index:/app/index
+      - ./data/docs:/app/docs:ro
+    environment:
+      - WEB_AGENT_HOST=0.0.0.0
+      - WEB_AGENT_PORT=8103
+      - WEB_AGENT_MCP_PATH=/mcp/
+      - WEB_AGENT_SEARXNG_BASE_URL=http://searxng:8080
+      - WEB_AGENT_CACHE_DIR=/app/cache
+      - WEB_AGENT_INDEX_DIR=/app/index
+      - WEB_AGENT_ALLOWED_LOCAL_ROOTS=/app/docs
+      - WEB_AGENT_ALLOW_PRIVATE_NETWORK=false
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=localhost,127.0.0.1,::1,searxng,web-agent-mcp
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=localhost,127.0.0.1,::1,searxng,web-agent-mcp
+
+networks:
+  default:
+    name: web-agent-network
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1350"
