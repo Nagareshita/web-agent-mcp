@@ -16,6 +16,26 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
+    # Playwright/Chromium system dependencies
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
+    libwayland-client0 \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 # uvのインストール
@@ -24,6 +44,9 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml uv.lock README.md ./
 # Install only third-party dependencies, skip the project package itself
 RUN uv sync --frozen --no-dev --no-install-project
+
+# Install Playwright and Chromium browser
+RUN uv run --no-project playwright install chromium
 
 COPY src ./src
 

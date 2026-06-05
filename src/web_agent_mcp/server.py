@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
+import anyio
+import uvicorn
 from mcp.server.fastmcp import FastMCP
 
 from web_agent_mcp.config import settings
@@ -25,6 +28,7 @@ mcp = FastMCP(
     port=settings.port,
     streamable_http_path=settings.mcp_path.rstrip("/") or "/mcp",
     stateless_http=True,
+    json_response=True,
 )
 
 
@@ -170,13 +174,50 @@ async def cache_status(params: CacheStatusInput) -> str:
 
 
 def main() -> None:
+    mcp_path = settings.mcp_path.rstrip("/") or "/mcp"
     logger.info(
-        "Starting web_agent_mcp on %s:%d%s",
+        "Starting web_agent_mcp on %s:%d%s (Streamable HTTP, stateless)",
         settings.host,
         settings.port,
-        settings.mcp_path,
+        mcp_path,
     )
-    mcp.run(transport="streamable-http")
+
+    async def _run() -> None:
+        starlette_app = mcp.streamable_http_app()
+
+        async def asgi_app(scope: dict[str, Any], receive: Any, send: Any) -> None:
+            # For stateless HTTP mode, GET on the MCP endpoint is not supported.
+            # Return 405 Method Not Allowed so clients know there is no
+            # server-initiated SSE notification stream (MCP spec §2.2).
+            if (
+                scope.get("type") == "http"
+                and scope.get("method") == "GET"
+                and scope.get("path") == mcp_path
+            ):
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 405,
+                        "headers": [
+                            (b"allow", b"POST"),
+                            (b"content-length", b"0"),
+                        ],
+                    }
+                )
+                await send({"type": "http.response.body", "body": b""})
+                return
+            await starlette_app(scope, receive, send)
+
+        config = uvicorn.Config(
+            asgi_app,
+            host=settings.host,
+            port=settings.port,
+            log_level="info",
+        )
+        server = uvicorn.Server(config)
+        await server.serve()
+
+    anyio.run(_run)
 
 
 if __name__ == "__main__":

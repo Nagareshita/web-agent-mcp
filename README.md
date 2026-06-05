@@ -2,15 +2,26 @@
 
 WSL2 + Docker 上で動作する **Web 調査用 MCP サーバー**。  
 SearXNG による全文 Web 検索・HTML/PDF 本文抽出・SQLite FTS5 全文インデックスを  
-Streamable HTTP MCP として提供します。
+**Streamable HTTP MCP**（MCP 仕様 2025-06-18 準拠）として提供します。
 
 ```
 Windows MCP Client (VS Code / Claude / Codex)
-  → http://localhost:8103/mcp
+  → http://localhost:8103/mcp   ← Streamable HTTP (POST only, stateless)
   → WSL2 Docker: web-agent-mcp コンテナ
   → Docker 内部ネットワーク
   → searxng コンテナ:8080 → インターネット
 ```
+
+### トランスポートの仕様
+
+| 項目 | 内容 |
+|------|------|
+| プロトコル | Streamable HTTP（MCP 2025-06-18 仕様） |
+| エンドポイント | `POST http://localhost:8103/mcp` |
+| レスポンス形式 | `application/json`（stateless モード） |
+| Accept ヘッダー | `application/json` のみで接続可能 |
+| GET `/mcp` | `405 Method Not Allowed`（stateless のため SSE 通知ストリームなし） |
+| セッション | なし（stateless）— リクエストごとに独立処理 |
 
 ## 提供ツール一覧
 
@@ -147,6 +158,9 @@ cp /path/to/your.pdf ~/web-agent-mcp/data/docs/
   }
 }
 ```
+
+> **`"type": "http"`** が Streamable HTTP トランスポートを指定します。  
+
 
 **設定場所**: `Ctrl+Shift+P` → `Preferences: Open User Settings (JSON)`
 
@@ -299,6 +313,30 @@ docker compose ps
 ---
 
 ## トラブルシューティング
+
+### `"Client must accept text/event-stream"` エラーが出る
+
+旧バージョンの問題です。現バージョンでは以下の変更により解決しています：
+
+| 変更点 | 旧動作 | 新動作 |
+|--------|--------|--------|
+| GET `/mcp` | `406 Not Acceptable` | `405 Method Not Allowed`（仕様準拠） |
+| POST の Accept 要件 | `application/json` + `text/event-stream` 両方必須 | `application/json` のみで OK |
+| レスポンス形式 | SSE ストリーム（`text/event-stream`） | JSON（`application/json`） |
+
+```bash
+# 動作確認（Accept: application/json のみで 200 が返ることを確認）
+curl -s -X POST http://localhost:8103/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' \
+  | python3 -m json.tool
+```
+
+まだ発生する場合は Docker イメージを再ビルドしてください：
+```bash
+docker compose up -d --build
+```
 
 ### MCP に繋がらない
 

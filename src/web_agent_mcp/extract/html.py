@@ -36,9 +36,10 @@ def extract_html(raw_bytes: bytes, url: str = "", content_type: str = "") -> tup
             include_links=False,
             include_tables=True,
             output_format="markdown",
+            deduplicate=True,
         )
         if result and isinstance(result, str) and len(result.strip()) > 100:
-            return title, result, "trafilatura"
+            return title, _remove_duplicate_blocks(result), "trafilatura"
     except Exception:
         pass
 
@@ -113,3 +114,23 @@ def _detect_encoding(content_type: str) -> Optional[str]:
     if match:
         return match.group(1).strip('"\'')
     return None
+
+
+def _remove_duplicate_blocks(text: str) -> str:
+    """Remove duplicate paragraphs/blocks within extracted text.
+
+    Splits text on blank lines, hashes each block, and keeps only the first
+    occurrence. This addresses within-document duplication that trafilatura
+    occasionally produces when the same content appears in multiple DOM regions.
+    """
+    blocks = re.split(r"\n{2,}", text)
+    seen: set[str] = set()
+    unique: list[str] = []
+    for block in blocks:
+        normalized = re.sub(r"\s+", " ", block).strip()
+        if not normalized:
+            continue
+        if normalized not in seen:
+            seen.add(normalized)
+            unique.append(block.strip())
+    return "\n\n".join(unique)

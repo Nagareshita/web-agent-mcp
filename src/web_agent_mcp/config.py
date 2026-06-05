@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     host: str = "0.0.0.0"
     port: int = 8103
-    mcp_path: str = "/mcp/"
+    mcp_path: str = "/mcp"
 
     searxng_base_url: str = "http://searxng:8080"
 

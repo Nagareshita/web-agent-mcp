@@ -38,6 +38,11 @@ class WebReadMetadata(BaseModel):
     content_type: Optional[str] = None
     cache_hit: bool = False
     content_truncated: bool = False
+    # pagination / large-content info
+    total_chars: Optional[int] = None
+    total_pages: Optional[int] = None
+    current_page: Optional[int] = None
+    used_browser: bool = False
 
 
 class WebReadOutput(BaseModel):

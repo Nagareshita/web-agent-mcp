@@ -38,7 +38,7 @@ services:
     environment:
       - WEB_AGENT_HOST=0.0.0.0
       - WEB_AGENT_PORT=8103
-      - WEB_AGENT_MCP_PATH=/mcp/
+      - WEB_AGENT_MCP_PATH=/mcp
       - WEB_AGENT_SEARXNG_BASE_URL=http://searxng:8080
       - WEB_AGENT_CACHE_DIR=/app/cache
       - WEB_AGENT_INDEX_DIR=/app/index
