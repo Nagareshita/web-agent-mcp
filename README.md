@@ -28,10 +28,22 @@ Windows MCP Client (VS Code / Claude / Codex)
 | ツール名 | 説明 |
 |---------|------|
 | `web_search` | SearXNG で Web 検索。`site:` 絞り込み対応 |
-| `web_read` | URL または `/app/docs` 配下のローカル PDF を読んで Markdown 抽出 |
+| `web_read` | URL または `/app/docs` 配下のローカル PDF を読んで Markdown 抽出。JS テンプレート変数 (`${...}`) を検知すると Playwright で自動再取得。`page` / `page_size` で大容量コンテンツをページ分割取得可能 |
 | `web_read_many` | 複数 URL を並列フェッチ |
 | `local_document_search` | 既読文書を SQLite FTS5 で全文検索 |
 | `cache_status` | キャッシュ・インデックスの統計情報 |
+
+### `web_read` の主要パラメータ
+
+| パラメータ | 型 | デフォルト | 説明 |
+|-----------|-----|-----------|------|
+| `url` | string | — | 取得する URL |
+| `use_browser` | bool | `false` | `true` にすると Playwright Chromium で JS をレンダリングしてから抽出。JS テンプレート変数 (`${...}`) が検出された場合は自動的に `true` へ昇格 |
+| `page` | int | `0` | ページ番号（0 始まり）。コンテンツが 12000 字超の場合は自動でページネーション |
+| `page_size` | int | `null` | 1 ページあたりの文字数（未指定時: 12000 字超で自動適用）。`metadata.total_pages` / `metadata.total_chars` で全体サイズを確認できる |
+| `force_refresh` | bool | `false` | キャッシュを無視して再取得 |
+| `return_chunks` | bool | `false` | チャンク配列を含める（デフォルト除外でレスポンスを軽量化） |
+| `return_links` | bool | `false` | リンク一覧を含める（デフォルト除外） |
 
 ---
 
@@ -403,8 +415,8 @@ web-agent-mcp/
       models.py
       tools/              ← 5 ツールの実装
       search/             ← SearXNG クライアント
-      fetch/              ← HTTP フェッチ + SSRF 防御
-      extract/            ← HTML/PDF 抽出
+      fetch/              ← HTTP フェッチ + SSRF 防御 + Playwright ブラウザフェッチ
+      extract/            ← HTML/PDF 抽出（重複ブロック除去含む）
       storage/            ← diskcache + SQLite FTS5
 
   data/
