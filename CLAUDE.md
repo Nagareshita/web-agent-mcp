@@ -57,8 +57,8 @@ uv run ruff format .
 
 | 禁止 | 理由 |
 |---|---|
-| `conda` / `miniconda` | 商用ライセンス問題 |
-| AGPL依存ライブラリ | 商用利用不可（例: PyMuPDF） |
+| `anaconda` / `miniconda` | 商用ライセンス問題 |
+| AGPL依存ライブラリ | 商用利用不可 |
 | APIキーのハードコード | セキュリティポリシー違反 |
 | `Any` 型の多用 | 型安全性の担保のため |
 | `except: pass` | サイレント失敗は追跡不能 |
@@ -84,12 +84,6 @@ uv run ruff format .
 > ※ このセクションはプロジェクトに合わせて書き換えてください
 
 ```
-# ポート番号
-Qdrant     : 6333
-Neo4j      : 7687
-MCPサーバ  : 8101
-LocalLLM   : <ポート番号を記載>
-
 # 主要ディレクトリ
 .agents/skills/   ← Agent Skills（Claude Code / Copilot / Cursor 互換）
 src/              ← ソースコード
