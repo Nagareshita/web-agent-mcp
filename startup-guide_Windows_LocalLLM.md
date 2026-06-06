@@ -1,11 +1,12 @@
 # Windows ネイティブ構築手順書
 ## Qwen3-Coder-Next (llama.cpp) + Claude Code VSCode拡張
 
-**対象環境**
-- OS: Windows 10/11
-- GPU: NVIDIA RTX 4070 12GB
-- RAM: 64GB以上推奨
-- VSCode 1.98.0以上
+| 対象環境 | |
+|---|---|
+| OS | Windows 10/11 |
+| GPU | NVIDIA RTX 4070 12GB |
+| RAM | 64GB以上推奨 |
+| VSCode | 1.98.0以上 |
 
 ---
 
@@ -16,6 +17,13 @@
   ポート8080               settings.json で接続先指定
   CUDA + CPUオフロード      ログイン不要（ローカルキー認証）
 ```
+
+| コンポーネント | 詳細 |
+|---|---|
+| 実行ファイル | llama-server.exe (CUDA + CPUオフロード) |
+| ポート | 8080 (127.0.0.1) |
+| クライアント | Claude Code VSCode拡張 |
+| 認証 | ローカルキー認証 (`--api-key local-key`) |
 
 ---
 
@@ -30,6 +38,7 @@ https://developer.nvidia.com/cuda-downloads
 ```
 
 インストール確認：
+
 ```powershell
 nvcc --version
 nvidia-smi
@@ -44,6 +53,7 @@ https://nodejs.org/
 ```
 
 インストール確認：
+
 ```powershell
 node -v
 npm -v
@@ -62,9 +72,10 @@ https://github.com/ggml-org/llama.cpp/releases
 ```
 
 ファイル名の例：
+
 ```
 llama-b9536-bin-win-cuda-12.4-x64.zip
-cudart-llama-bin-win-cuda-12.4-x64.zip（CUDA 12.4 DLLsと表示）
+cudart-llama-bin-win-cuda-12.4-x64.zip  （CUDA 12.4 DLLsと表示）
 ```
 
 `llama-b...zip` は llama.cpp 本体、`cudart-llama...zip` は CUDA ランタイム DLL。
@@ -74,22 +85,33 @@ cudart-llama-bin-win-cuda-12.4-x64.zip（CUDA 12.4 DLLsと表示）
 
 ### 2-2. 展開と配置
 
-任意のフォルダ（ 例：C:\localllm\llamacpp\） に展開してください。
-展開後、`C:\localllm\llamacpp\llama-server.exe` が存在することを確認。
-あわせて `cudart64_12.dll` と `cublas64_12.dll` が `C:\localllm\llamacpp\` に存在することを確認。
+任意のフォルダ（例：`C:\localllm\llamacpp\`）に展開し、以下のファイルが存在することを確認：
+
+```
+C:\localllm\llamacpp\llama-server.exe
+C:\localllm\llamacpp\cudart64_12.dll
+C:\localllm\llamacpp\cublas64_12.dll
+```
 
 ---
 
 ## STEP 3：モデルのダウンロード
 
-https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF
-の中から、Qwen3-Coder-Next-UD-Q4_K_XL.gguf　を探し出して、ダウンロード。
-（右あたりにある「UD-Q4_K_XL49.6 GB」）
-ダウンロード後、`C:\localllm\models\Qwen3-Coder-Next\`に保存。 
+以下のURLから `Qwen3-Coder-Next-UD-Q4_K_XL.gguf` を探してダウンロード：
 
-> **所要時間**：約49.6GB、回線速度次第で数十分（100Mbpsで約1時間）。
-> **ストレージ**：NVMe SSD推奨（HDDではモデルロードに10分以上かかる）。
-> **モデル特性**：Qwen3-Coder-NextはGated DeltaNetハイブリッドアーキテクチャ採用で、同サイズのTransformerよりVRAM消費が30〜40%少ない。
+```
+https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF
+```
+
+（右あたりにある「UD-Q4_K_XL  49.6 GB」）
+
+ダウンロード後、`C:\localllm\models\Qwen3-Coder-Next\` に保存。
+
+| 項目 | 詳細 |
+|---|---|
+| 所要時間 | 約49.6GB、回線速度次第で数十分（100Mbpsで約1時間） |
+| ストレージ | NVMe SSD推奨（HDDではモデルロードに10分以上かかる） |
+| モデル特性 | Gated DeltaNetハイブリッドアーキテクチャ採用で、同サイズのTransformerよりVRAM消費が30〜40%少ない |
 
 ---
 
@@ -121,11 +143,12 @@ $SERVER = "C:\localllm\llamacpp\llama-server.exe"
   -b 2048 -ub 512 `
   --no-mmap `
   --api-key local-key
+```
 
-**主要フラグの説明**
+### 主要フラグの説明
 
 | フラグ | 説明 | 推奨値 | 備考 |
-|--------|:-------|:-------|:-------|
+|---|---|---|---|
 | `--fit on` | 起動時にVRAMを自動プローブし、最適なGPU/CPUレイヤー配置を自動計算。手動 `-ngl` 調整不要 | `on` | `off` の場合は手動で `-ngl 999` など指定必要 |
 | `--fit-ctx 131072` | VRAMプローブ時のコンテキストサイズ基準。このサイズでVRAM使用量を推定 | `131072` | `--ctx-size` と一致させることが基本 |
 | `--fit-target 128` | VRAMの安全マージン（MiB単位）。ここを下回るとオフロードが発生 | `128` | 少し余裕を持たせる（64以下は危険） |
@@ -140,8 +163,8 @@ $SERVER = "C:\localllm\llamacpp\llama-server.exe"
 | `-ub 512` | ユニバーサルバッチサイズ（生成単位）。トークン生成速度に影響 | `512` | 通常256〜1024。大きくするほど生成が速い |
 | `--host 127.0.0.1` | バインドアドレス。`0.0.0.0` にするとネットワーク経由でアクセス可能 | `127.0.0.1` | セキュリティのためローカルのみが推奨 |
 | `--api-key local-key` | API認証用キーセット。空欄にすると認証なしになる | `local-key` | 同じキーをクライアント設定で必須 |
-| `-m $MODEL` | モデルファイル路径（GGUF形式） | 必須 | 相対パス・絶対パスどちらでも可 |
-| `--port 8080` | サーバー监听ポート | `8080` | 他のプロセスと競合しない任意のポート |
+| `-m $MODEL` | モデルファイルパス（GGUF形式） | 必須 | 相対パス・絶対パスどちらでも可 |
+| `--port 8080` | サーバー監視ポート | `8080` | 他のプロセスと競合しない任意のポート |
 | `$env:LLAMA_SET_ROWS=1` | 環境変数。行ベース処理でVRAM効率を向上 | `1` | CUDA最適化用。0の場合は列ベース |
 | `$env:GGML_CUDA_GRAPH_OPT=1` | 環境変数。CUDAグラフ最適化を有効化 | `1` | 推論速度向上（10〜15%） |
 
@@ -156,74 +179,52 @@ powershell -ExecutionPolicy Bypass -File C:\localllm\scripts\start_server.ps1
 
 ## STEP 5：VSCode拡張のインストールと設定
 
-### 5-1. ClaudeCodeのインストール
+### 5-1. Claude Code のインストール
 
-VSCodeの拡張機能ビューを開く（`Ctrl+Shift+X`）→ `Claude Code` を検索 → インストール。
+VSCodeの拡張機能ビュー（`Ctrl+Shift+X`）→「Claude Code」を検索 → インストール。
 
-### 5-2. 起動の設定ファイルの作成と配置
+### 5-2. .vscode/settings.json の作成と配置
 
 `.vscode\settings.json` を作成（フォルダがなければ作成）：
 
 ```json
 {
   "claudeCode.environmentVariables": [
-    {
-      "name": "ANTHROPIC_BASE_URL",
-      "value": "http://127.0.0.1:8080"
-    },
-    {
-      "name": "ANTHROPIC_AUTH_TOKEN",
-      "value": "local-key"
-    },
-    {
-      "name": "ANTHROPIC_MODEL",
-      "value": "qwen3-coder-next"
-    },
-    {
-      "name": "ANTHROPIC_CUSTOM_MODEL_OPTION",
-      "value": "qwen3-coder-next"
-    },
-    {
-      "name": "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME",
-      "value": "Qwen3 Coder Next Local"
-    },
-    {
-      "name": "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION",
-      "value": "Local llama.cpp Qwen3-Coder-Next GGUF"
-    },
-    {
-      "name": "CLAUDE_CODE_ATTRIBUTION_HEADER",
-      "value": "0"
-    }
+    { "name": "ANTHROPIC_BASE_URL",                        "value": "http://127.0.0.1:8080" },
+    { "name": "ANTHROPIC_AUTH_TOKEN",                      "value": "local-key" },
+    { "name": "ANTHROPIC_MODEL",                           "value": "qwen3-coder-next" },
+    { "name": "ANTHROPIC_CUSTOM_MODEL_OPTION",             "value": "qwen3-coder-next" },
+    { "name": "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME",        "value": "Qwen3 Coder Next Local" },
+    { "name": "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION", "value": "Local llama.cpp Qwen3-Coder-Next GGUF" },
+    { "name": "CLAUDE_CODE_ATTRIBUTION_HEADER",            "value": "0" }
   ],
   "claudeCode.disableLoginPrompt": true
 }
 ```
 
-> **⚠️ 重要 `CLAUDE_CODE_ATTRIBUTION_HEADER: "0"` について**
-> Claude Codeは全リクエストにAttributionヘッダーを付与するが、これがllama.cppのKVキャッシュを
-> 無効化し、推論速度が最大90%低下する。環境変数での設定は無効で、必ずこのファイルに書くこと。
+> **⚠️ 重要：`CLAUDE_CODE_ATTRIBUTION_HEADER: "0"` について**
+>
+> Claude Codeは全リクエストにAttributionヘッダーを付与するが、これがllama.cppのKVキャッシュを無効化し、推論速度が最大90%低下する。環境変数での設定は無効で、必ずこのファイルに書くこと。
 
-## `.vscode/settings.json` の設定項目
+### .vscode/settings.json 設定項目一覧
 
 | 設定項目 | 値 | 意味 |
 |---|---|---|
-| `claudeCode.environmentVariables` | 配列 | Claude Code VSCode拡張から起動されるプロセスへ渡す環境変数の一覧。ローカルLLM接続先、認証キー、モデル名などを指定する。 |
-| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:8080` | Claude Codeの接続先API。ローカルで起動している `llama-server` を指定する。`--host 127.0.0.1` と `--port 8080` に対応。 |
-| `ANTHROPIC_AUTH_TOKEN` | `local-key` | API認証用トークン。`llama-server` 起動時の `--api-key local-key` と一致させる。 |
-| `ANTHROPIC_MODEL` | `qwen3-coder-next` | 実際に使用するモデルID。`llama-server` 側で `--alias qwen3-coder-next` を指定している場合、この値と一致させる。 |
-| `ANTHROPIC_CUSTOM_MODEL_OPTION` | `qwen3-coder-next` | Claude Codeの `/model` 選択肢に追加するカスタムモデルID。通常は `ANTHROPIC_MODEL` と同じ値にする。 |
-| `ANTHROPIC_CUSTOM_MODEL_OPTION_NAME` | `Qwen3 Coder Next Local` | `/model` に表示されるモデル名。人間が見て分かりやすい表示名を付ける。 |
-| `ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION` | `Local llama.cpp Qwen3-Coder-Next GGUF` | `/model` に表示される説明文。どのローカルモデル・実行環境なのかを補足する。 |
-| `CLAUDE_CODE_ATTRIBUTION_HEADER` | `0` | Attributionヘッダーを抑制する設定。ローカル `llama.cpp` 利用時にKVキャッシュ無効化や速度低下を避ける目的で設定する。 |
-| `claudeCode.disableLoginPrompt` | `true` | Claude Code VSCode拡張のログイン要求を抑制する設定。Anthropic公式APIではなく、ローカル互換APIへ接続する場合に使う。 |
-| `claudeCode.selectedModel` | 使わない | 公式設定として確認できないため使わない。モデル指定には `ANTHROPIC_MODEL` を使う。 |
+| `claudeCode.environmentVariables` | 配列 | Claude Code VSCode拡張から起動されるプロセスへ渡す環境変数の一覧。ローカルLLM接続先、認証キー、モデル名などを指定する |
+| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:8080` | Claude Codeの接続先API。ローカルで起動している `llama-server` を指定する。`--host 127.0.0.1` と `--port 8080` に対応 |
+| `ANTHROPIC_AUTH_TOKEN` | `local-key` | API認証用トークン。`llama-server` 起動時の `--api-key local-key` と一致させる |
+| `ANTHROPIC_MODEL` | `qwen3-coder-next` | 実際に使用するモデルID。`llama-server` 側で `--alias qwen3-coder-next` を指定している場合、この値と一致させる |
+| `ANTHROPIC_CUSTOM_MODEL_OPTION` | `qwen3-coder-next` | Claude Codeの `/model` 選択肢に追加するカスタムモデルID。通常は `ANTHROPIC_MODEL` と同じ値にする |
+| `ANTHROPIC_CUSTOM_MODEL_OPTION_NAME` | `Qwen3 Coder Next Local` | `/model` に表示されるモデル名。人間が見て分かりやすい表示名を付ける |
+| `ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION` | `Local llama.cpp Qwen3-Coder-Next GGUF` | `/model` に表示される説明文。どのローカルモデル・実行環境なのかを補足する |
+| `CLAUDE_CODE_ATTRIBUTION_HEADER` | `0` | Attributionヘッダーを抑制する設定。ローカル `llama.cpp` 利用時にKVキャッシュ無効化や速度低下を避ける目的で設定する |
+| `claudeCode.disableLoginPrompt` | `true` | Claude Code VSCode拡張のログイン要求を抑制する設定。Anthropic公式APIではなく、ローカル互換APIへ接続する場合に使う |
+| `claudeCode.selectedModel` | 使わない | 公式設定として確認できないため使わない。モデル指定には `ANTHROPIC_MODEL` を使う |
 
-
-### 5-3. webfetch および websearchツールの停止
+### 5-3. webfetch および websearch ツールの停止
 
 ローカルLLMをClaudeCodeで使用するとwebfetch および websearchツールが使えない（Claudeのサーバにアクセスできないため）。
-そこで、このツールを停止し、自作のwebfetch,searchのMCPサーバを使用する。
+このツールを停止し、自作のwebfetch/searchのMCPサーバを使用する。
 
 `.claude\settings.json` を作成（フォルダがなければ作成）：
 
@@ -238,10 +239,9 @@ VSCodeの拡張機能ビューを開く（`Ctrl+Shift+X`）→ `Claude Code` を
 }
 ```
 
-### 5-4. MCPサーバの有効化
+### 5-4. MCP サーバの有効化
 
-`.mcp.json` をプロジェクトルートに作成：
-WSLでMCPサーバweb-ageentを有効化すること。
+`.mcp.json` をプロジェクトルートに作成し、WSLでMCPサーバ `web-agent` を有効化する：
 
 ```json
 {
@@ -252,7 +252,6 @@ WSLでMCPサーバweb-ageentを有効化すること。
     }
   }
 }
-
 ```
 
 ---
@@ -270,7 +269,7 @@ WSLでMCPサーバweb-ageentを有効化すること。
 ## トラブルシューティング
 
 | 症状 | 原因 | 対処 |
-|------|------|------|
+|---|---|---|
 | サーバー起動時にVRAM不足エラー | `--fit on` でもVRAM超過 | `--ctx-size 32768` に下げる |
 | 推論が極端に遅い（10tok/s以下） | KVキャッシュ無効化 | `CLAUDE_CODE_ATTRIBUTION_HEADER: "0"` を settings.json に書いたか確認 |
 | VSCodeでサインイン画面が出る | 環境変数が未反映 | `claudeCode.disableLoginPrompt: true` を追加、VSCode完全再起動 |
@@ -282,17 +281,15 @@ WSLでMCPサーバweb-ageentを有効化すること。
 
 ## 毎回の起動手順（定常運用）
 
-```
-1. start_server.ps1 を実行（またはタスクスケジューラに登録）
+1. `start_server.ps1` を実行（またはタスクスケジューラに登録）
 2. VSCode を開く
-```
 
 ---
 
-## 参考：ハードウェアスペック要件まとめ
+## 参考：ハードウェアスペック要件
 
 | 項目 | 最低 | 推奨 |
-|------|------|------|
+|---|---|---|
 | VRAM | 12GB (RTX 4070) | 16GB以上 |
 | システムRAM | 64GB | 96GB以上 |
 | CPU | 8コア以上 | 16コア以上（CPUオフロード高速化） |
