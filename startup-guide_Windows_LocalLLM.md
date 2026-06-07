@@ -225,17 +225,23 @@ VSCodeの拡張機能ビュー（`Ctrl+Shift+X`）→「Claude Code」を検索 
 
 ローカルLLMをClaudeCodeで使用するとwebfetch および websearchツールが使えない（Claudeのサーバにアクセスできないため）。
 このツールを停止し、自作のwebfetch/searchのMCPサーバを使用する。
+Workflowもweb検索するためにループし、エラーとなるため使わない設定とする。
 
 `.claude\settings.json` を作成（フォルダがなければ作成）：
 
 ```json
 {
   "permissions": {
+    "allow": [
+      "mcp__web-agent",
+      "mcp__web-agent__*"
+    ],
     "deny": [
       "WebFetch",
       "WebSearch"
     ]
-  }
+  },
+  "disableWorkflows": true
 }
 ```
 
